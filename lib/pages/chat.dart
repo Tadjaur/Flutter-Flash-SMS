@@ -37,6 +37,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     PlatformServices.nativeChatMessagesCallCancel();
+    PlatformServices.cancelNativeChatMessageReceiver();
     super.dispose();
   }
 
@@ -100,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
                 children: <Widget>[
                   Expanded(
                       child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.symmetric(vertical:2.0, horizontal: 10.0),
                     child: TextField(
                       decoration: InputDecoration(
                           hintText: "Enter Messages...",

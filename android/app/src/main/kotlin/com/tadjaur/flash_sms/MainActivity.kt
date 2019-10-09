@@ -1,6 +1,5 @@
 package com.tadjaur.flash_sms
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +14,9 @@ import io.flutter.app.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.system.exitProcess
 
 
 class MainActivity : FlutterActivity() {
@@ -25,6 +27,8 @@ class MainActivity : FlutterActivity() {
     private lateinit var loadsmsTask: LoadSms
     lateinit var smsList: ArrayList<HashMap<String, String>>
     lateinit var tmpList: ArrayList<HashMap<String, String>>
+    private val postAction: ArrayList<Runnable> = ArrayList()
+    private var allLoaded: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,16 +47,38 @@ class MainActivity : FlutterActivity() {
         methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 (methods.FP) -> {
-                    checkFirstStart(result)
-                    loadsmsTask = LoadSms(this@MainActivity)
-                    loadsmsTask.execute()
+                    val rn = Runnable {
+                        checkFirstStart(result)
+                        loadsmsTask = LoadSms(this@MainActivity)
+                        loadsmsTask.execute()
+                    }
+                    if (allLoaded) {
+                        rn.run()
+                    } else {
+                        postAction.add(rn)
+                    }
+
 //                    methodChannel.invokeMethod(methods.KList, tmpList)
                 }
                 (methods.SSms) -> {
-                    sendNewMessage(call.arguments, result)
+                    val rn = Runnable {
+                        sendNewMessage(call.arguments, result)
+                    }
+                    if (allLoaded) {
+                        rn.run()
+                    } else {
+                        postAction.add(rn)
+                    }
                 }
                 (methods.RSms) -> {
-                    getAllMessages(result)
+                    val rn = Runnable {
+                        getAllMessages(result)
+                    }
+                    if (allLoaded) {
+                        rn.run()
+                    } else {
+                        postAction.add(rn)
+                    }
                 }
                 (methods.Dial) -> {
                     val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -67,46 +93,49 @@ class MainActivity : FlutterActivity() {
                     startActivity(Intent(Intent.ACTION_CALL, Uri.parse(dial)))
                 }
                 (methods.KChatList) -> {
-                    try {
-                        val arg = call.arguments as HashMap<*, *>?
-                        val loadchat = LoadChat((arg!!["thread_id"] as String).toInt(), arg["name"] as String)
-                        loadchat.execute()
-
-
-                        (application as FlashApplication).smsBroadcastReceiver.setListener(object : SmsBroadcastReceiver.Listener {
-                            override fun onTextReceived(sender: String, body: String) {
-                                Log.d(FlashApplication.tag, "SENDER::$sender === BODY::$body ==== wantedSender::${arg["num"] as String}")
-                                if (sender == arg["num"].toString()) {
-                                    methodChannel.invokeMethod(methods.KSmsI, body)
-                                } else {
-                                    Toast.makeText(applicationContext, "from:$sender\nbody:$body", Toast.LENGTH_LONG).show()
+                    val rn = Runnable {
+                        try {
+                            val arg = call.arguments as HashMap<*, *>?
+                            val loadchat = LoadChat((arg!!["thread_id"] as String).toInt(), arg["name"] as String)
+                            loadchat.execute()
+                            (application as FlashApplication).smsBroadcastReceiver.setListener(object : SmsBroadcastReceiver.Listener {
+                                override fun onTextReceived(sender: String, body: String) {
+                                    val value = HashMap<String, String>()
+                                    value["msg"] = body
+                                    value["adr"] = sender
+                                    if (sender == arg["num"].toString()) {
+                                        methodChannel.invokeMethod(methods.KSmsI, value)
+                                    } else {
+                                        Toast.makeText(applicationContext, "from:$sender\nbody:$body", Toast.LENGTH_LONG).show()
+                                    }
                                 }
-                            }
-
-                        })
-                    } catch (e: Error) {
-                        result.error(null, null, e.message)
+                            })
+                        } catch (e: Error) {
+                            result.error(null, null, e.message)
+                        }
+                    }
+                    if (allLoaded) {
+                        rn.run()
+                    } else {
+                        postAction.add(rn)
                     }
                 }
                 else -> result.notImplemented()
             }
         }
-
-        if (!isSmsPermissionGranted(android.Manifest.permission.SEND_SMS)) {
-            requestPermission()
-        } else if (!isSmsPermissionGranted(android.Manifest.permission.RECEIVE_SMS)) {
-            requestPermission()
-        } else if (!isSmsPermissionGranted(android.Manifest.permission.READ_PHONE_STATE)) {
-            requestPermission()
-        } else if (!isSmsPermissionGranted(android.Manifest.permission.READ_CONTACTS)) {
-            requestPermission()
-        } else if (!isSmsPermissionGranted(android.Manifest.permission.VIBRATE)) {
-            requestPermission()
-        } else if (!isSmsPermissionGranted(android.Manifest.permission.CALL_PHONE)) {
+        if (!isSmsPermissionGranted(android.Manifest.permission.RECEIVE_SMS) ||
+                !isSmsPermissionGranted(android.Manifest.permission.READ_SMS) ||
+                !isSmsPermissionGranted(android.Manifest.permission.SEND_SMS) ||
+                !isSmsPermissionGranted(android.Manifest.permission.READ_PHONE_STATE) ||
+                !isSmsPermissionGranted(android.Manifest.permission.READ_CONTACTS) ||
+                !isSmsPermissionGranted(android.Manifest.permission.WRITE_CONTACTS) ||
+                !isSmsPermissionGranted(android.Manifest.permission.VIBRATE) ||
+                !isSmsPermissionGranted(android.Manifest.permission.CALL_PHONE)) {
             requestPermission()
         } else {
-//            BackgroundService.instance(applicationContext)
+            doneForAll()
         }
+
 
     }
 
@@ -138,53 +167,29 @@ class MainActivity : FlutterActivity() {
     private fun isSmsPermissionGranted(permission: String): Boolean {
         val v1 = ContextCompat.checkSelfPermission(applicationContext, permission)
         val v2 = PackageManager.PERMISSION_GRANTED
-        Log.d(tag, "PackageName::$packageName:::::checkSelfPermission::$v1 == PackageManager.PERMISSION_GRANTED::$v2")
         return v1 == v2
     }
 
     private fun requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.SEND_SMS) ||
-                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.RECEIVE_SMS) ||
-                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CALL_PHONE) ||
-                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.VIBRATE) ||
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.RECEIVE_SMS) ||
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_SMS) ||
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.SEND_SMS) ||
                 ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_PHONE_STATE) ||
-                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_CONTACTS)) {
-                showRequestPermissionsInfoAlertDialog(false, Runnable {
-                    ActivityCompat.requestPermissions(this, arrayOf(
-                            android.Manifest.permission.SEND_SMS,
-                            android.Manifest.permission.RECEIVE_SMS,
-                            android.Manifest.permission.READ_PHONE_STATE,
-                            android.Manifest.permission.VIBRATE,
-                            android.Manifest.permission.CALL_PHONE,
-                            android.Manifest.permission.READ_CONTACTS), smsPermissionCode)
-                })
-        }else{
-            ActivityCompat.requestPermissions(this, arrayOf(
-                    android.Manifest.permission.SEND_SMS,
-                    android.Manifest.permission.RECEIVE_SMS,
-                    android.Manifest.permission.READ_PHONE_STATE,
-                    android.Manifest.permission.VIBRATE,
-                    android.Manifest.permission.CALL_PHONE,
-                    android.Manifest.permission.READ_CONTACTS), smsPermissionCode)
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_CONTACTS) ||
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.WRITE_CONTACTS) ||
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.VIBRATE) ||
+                ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CALL_PHONE)) {
+            // Non blocking code
         }
-    }
-
-    private fun showRequestPermissionsInfoAlertDialog(makeSystemRequest: Boolean, runnable: Runnable) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("SMS permission") // Your own title
-        builder.setMessage("Flash sms will now request some permission on your device.\n\n " +
-                "that is require for good work of application") // Your own message
-
-        builder.setPositiveButton("OK") { dialog, _ ->
-            dialog.dismiss()
-            // Display system runtime permission request?
-            if (makeSystemRequest) {
-                println("run run run run run")
-                runnable.run()
-            }
-        }
-        builder.setCancelable(false)
-        builder.show()
+        ActivityCompat.requestPermissions(this, arrayOf(
+                android.Manifest.permission.RECEIVE_SMS,
+                android.Manifest.permission.READ_SMS,
+                android.Manifest.permission.SEND_SMS,
+                android.Manifest.permission.READ_PHONE_STATE,
+                android.Manifest.permission.READ_CONTACTS,
+                android.Manifest.permission.WRITE_CONTACTS,
+                android.Manifest.permission.VIBRATE,
+                android.Manifest.permission.CALL_PHONE), smsPermissionCode)
     }
 
 
@@ -200,20 +205,25 @@ class MainActivity : FlutterActivity() {
                             if (trycount != 1) {
                                 trycount = 1
                                 requestPermission()
-                            }else{
+                            } else {
                                 finish()
+                                exitProcess(0)
                             }
                             return
                         }
                         idx++
                     }
-                    //todo
-//                    loadsmsTask = LoadSms(this)
-//                    loadsmsTask.execute()
+                    doneForAll()
                 }
                 return
             }
         }
+    }
+
+    private fun doneForAll() {
+        postAction.forEach { r -> r.run() }
+        postAction.clear()
+        allLoaded = true
     }
 
     companion object {
@@ -244,14 +254,14 @@ class MainActivity : FlutterActivity() {
 
                 if (c.moveToFirst()) {
 //                    //todo: remove these lines
-//                    println()
-//                    println("# column list")
-//                    val cn = c.columnNames
-//                    for (i in 0 until c.columnCount){
-//                        println(cn[i])
-//                    }
-//                    println()
-//                    println("# End")
+                    println()
+                    println("# column list")
+                    val cn = c.columnNames
+                    for (i in 0 until c.columnCount) {
+                        println(cn[i])
+                    }
+                    println()
+                    println("# End")
                     for (i in 0 until c.count) {
                         var name: String? = null
                         var phone = ""
@@ -260,6 +270,7 @@ class MainActivity : FlutterActivity() {
                         val msg = c.getString(c.getColumnIndexOrThrow("body"))
                         val type = c.getString(c.getColumnIndexOrThrow("type"))
                         val timestamp = c.getString(c.getColumnIndexOrThrow("date"))
+                        val read = c.getString(c.getColumnIndexOrThrow("date"))
                         phone = c.getString(c.getColumnIndexOrThrow("address"))
 //                        name = CacheUtils.readFile(thread_id)
                         if (name == null) {
@@ -268,7 +279,7 @@ class MainActivity : FlutterActivity() {
                         }
 
 
-                        val aux =  SmsUtils.mappingInbox(_id, thread_id, name, phone, msg, type, timestamp, SmsUtils.converToTime(timestamp))
+                        val aux = SmsUtils.mappingInbox(_id, thread_id, name, phone, msg, type, timestamp, SmsUtils.converToTime(timestamp))
                         smsList.add(aux)
                         caller.runOnUiThread {
                             caller.methodChannel.invokeMethod(methods.KCOvList, aux)
@@ -281,19 +292,18 @@ class MainActivity : FlutterActivity() {
             } catch (e: IllegalArgumentException) {
                 e.printStackTrace()
             }
-//todo: uncomment these line
-//            Collections.sort(smsList, MapComparator(SmsUtils.KEY_TIMESTAMP, "dsc")) // Arranging sms by timestamp decending
-//            val purified = SmsUtils.removeDuplicates(smsList) // Removing duplicates from inbox & sent
-//            smsList.clear()
-//            smsList.addAll(purified)
-//
-// Updating cache data
-//            try {
-//                SmsUtils.createCachedFile(this@MainActivity, "flashSms", smsList)
-//            } catch (e: Exception) {
-//            }
+            Collections.sort(smsList, MapComparator(SmsUtils.KEY_TIMESTAMP, "dsc")) // Arranging sms by timestamp decending
+            val purified = SmsUtils.removeDuplicates(smsList) // Removing duplicates from inbox & sent
+            smsList.clear()
+            smsList.addAll(purified)
 
-            // Updating cache data
+// Updating cache data
+            try {
+                SmsUtils.createCachedFile(this@MainActivity, "flashSms", smsList)
+            } catch (e: Exception) {
+            }
+
+//            Updating cache data
 
             return xml
         }

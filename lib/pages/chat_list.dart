@@ -1,4 +1,3 @@
-import 'dart:convert' as cv;
 import 'package:flash_sms/generated/i18n.dart';
 import 'package:flash_sms/platform_services.dart';
 import 'package:flash_sms/settings.dart';
@@ -8,13 +7,31 @@ import 'package:flutter/services.dart';
 
 import '../utils.dart';
 
-class ChatListPage extends StatelessWidget {
+class ChatListPage extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => _ChatListPageState();
+}
+
+class _ChatListPageState extends State<ChatListPage> {
   final pinnedFriendList = [];
 
   List<dynamic> chatsOverviewDataList = [];
 
+  final nNumCtrl = TextEditingController();
+  final nMsgCtrl = TextEditingController();
+  @override
+  void initState() {
+    PlatformServices.overviewListListener = () => setState(() {});
+  }
+
+  @override
+  void dispose() {
+    PlatformServices.cancelNativeChatsOverviewCall();
+  }
+
   @override
   Widget build(BuildContext context) {
+    String nAddress, nMessage;
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Pref.of(context).lightBlue,
@@ -27,22 +44,44 @@ class ChatListPage extends StatelessWidget {
                   content: SingleChildScrollView(
                     child: ListBody(
                       children: <Widget>[
-                        Text('You will never be satisfied.'),
-                        Text('You\’re like me. I’m never satisfied.'),
+                        TextField(
+                          controller: nNumCtrl,
+                          keyboardType: TextInputType.number,
+                          maxLength: 12,
+                          onChanged: (text){
+                            nAddress = text;
+                          },
+                          decoration: InputDecoration(
+                              hintText: "Enter Number",
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none),
+                        ),
+                        TextField(
+                          controller: nMsgCtrl,
+                          keyboardType: TextInputType.text,
+                          autocorrect: true,
+                          onChanged: (msg){
+                            nMessage = msg;
+                          },
+                          decoration: InputDecoration(
+                              hintText: "Enter Message",
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none),
+                        ),
                       ],
                     ),
                   ),
                   actions: <Widget>[
                     FlatButton(
-                      child: Text('Regret'),
+                      child: Text('Send'),
                       onPressed: () {
+                        PlatformServices.sendMessage(nMessage, nAddress);
                         Navigator.of(context).pop();
                       },
                     ),
                   ],
                 );
               });
-          print("try to add message");
         },
         child: Icon(Icons.add),
       ),
@@ -112,49 +151,42 @@ class ChatListPage extends StatelessWidget {
                 ),
           Flexible(
             child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(50.0), topRight: Radius.circular(50.0)),
                   color: Pref.of(context).primary.withBrigthness(-15)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                child: StreamBuilder<dynamic>(
-                    stream: PlatformServices.nativeChatsCall,
-                    builder: (context, snapshot) {
-                      print(["dart::", snapshot.hasData ? snapshot.requireData : "no data"]);
-//                        chatsOverviewDataList =
-//                            snapshot.hasData ? snapshot.requireData as List : [];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: chatsOverviewDataList.map((dynamic book) {
-                          final cod = MessageData.fromMap(book);
-                          return SwipableItem(
-                            child: ChatOverviewUi(cod),
-                            secondaryBackground: Container(
-                              color: Pref.of(context).transparent,
-                              child: Icon(
-                                Icons.call,
-                                color: Pref.of(context).lightGreen2,
-                              ),
-                              alignment: Alignment.centerRight,
-                            ),
-                            onSuccess: () {
-                              // vibration
-                              HapticFeedback.vibrate();
-                              PlatformServices.dial(cod.senderNumber);
-                              print("action to do");
-                            },
-                            onTap: () {
-                              PlatformServices.retrieveAllChatSms(
-                                  cod.senderName, cod.thread_id, cod.senderNumber);
-                              Navigator.of(context).pushNamed("/chat",
-                                  arguments: [cod.senderName, cod.senderNumber, cod.avatar]);
-                            },
-                          );
-                        }).toList(),
-                      );
-                    }),
-              ),
+              child: ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (BuildContext context, int index) {
+                    print([PlatformServices.overviewList.length, index]);
+                    if (index >= PlatformServices.overviewList.length) return null;
+                    final cod = PlatformServices.overviewList[index];
+
+                    return SwipableItem(
+                      child: ChatOverviewUi(cod),
+                      secondaryBackground: Container(
+                        color: Pref.of(context).transparent,
+                        child: Icon(
+                          Icons.call,
+                          color: Pref.of(context).lightGreen2,
+                        ),
+                        alignment: Alignment.centerRight,
+                      ),
+                      onSuccess: () {
+                        // vibration
+                        HapticFeedback.vibrate();
+                        PlatformServices.dial(cod.senderNumber);
+                        print("action to do");
+                      },
+                      onTap: () {
+                        PlatformServices.retrieveAllChatSms(
+                            cod.senderName, cod.thread_id, cod.senderNumber);
+                        Navigator.of(context).pushNamed("/chat",
+                            arguments: [cod.senderName, cod.senderNumber, cod.avatar]);
+                      },
+                    );
+                  }),
             ),
           ),
         ],

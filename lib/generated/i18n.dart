@@ -11,7 +11,8 @@ import 'package:flutter/material.dart';
 class S implements WidgetsLocalizations {
   const S();
 
-  static const GeneratedLocalizationsDelegate delegate = GeneratedLocalizationsDelegate();
+  static const GeneratedLocalizationsDelegate delegate =
+    GeneratedLocalizationsDelegate();
 
   static S of(BuildContext context) => Localizations.of<S>(context, S);
 
@@ -26,6 +27,7 @@ class $hi extends S {
 
   @override
   TextDirection get textDirection => TextDirection.ltr;
+
 }
 
 class $en extends S {
@@ -39,7 +41,7 @@ class $fr extends S {
   TextDirection get textDirection => TextDirection.ltr;
 
   @override
-  String get chats => "Conversation";
+  String get chats => "Conversations";
 }
 
 class $es extends S {
@@ -47,6 +49,7 @@ class $es extends S {
 
   @override
   TextDirection get textDirection => TextDirection.ltr;
+
 }
 
 class $zh extends S {
@@ -54,6 +57,7 @@ class $zh extends S {
 
   @override
   TextDirection get textDirection => TextDirection.ltr;
+
 }
 
 class GeneratedLocalizationsDelegate extends LocalizationsDelegate<S> {
@@ -101,7 +105,7 @@ class GeneratedLocalizationsDelegate extends LocalizationsDelegate<S> {
         case "zh":
           return SynchronousFuture<S>(const $zh());
         default:
-        // NO-OP.
+          // NO-OP.
       }
     }
     return SynchronousFuture<S>(const S());
@@ -149,8 +153,7 @@ class GeneratedLocalizationsDelegate extends LocalizationsDelegate<S> {
         }
 
         // If no country requirement is requested, check if this locale has no country.
-        if (true != withCountry &&
-            (supportedLocale.countryCode == null || supportedLocale.countryCode.isEmpty)) {
+        if (true != withCountry && (supportedLocale.countryCode == null || supportedLocale.countryCode.isEmpty)) {
           return true;
         }
       }
@@ -160,5 +163,7 @@ class GeneratedLocalizationsDelegate extends LocalizationsDelegate<S> {
 }
 
 String getLang(Locale l) => l == null
-    ? null
-    : l.countryCode != null && l.countryCode.isEmpty ? l.languageCode : l.toString();
+  ? null
+  : l.countryCode != null && l.countryCode.isEmpty
+    ? l.languageCode
+    : l.toString();

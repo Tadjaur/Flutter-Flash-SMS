@@ -5,7 +5,7 @@ class MessageData {
   MessageData(this.senderName, this.senderNumber, this.message, this.time,
       {this.status = "", this.avatar = ""});
 
-  MessageData.fromMap(Map<String, dynamic> value)
+  MessageData.fromMap(value)
       : assert(value != null, "the map must not be null") {
     this.senderName = value["name"];
     this.senderNumber = value["phone"];
