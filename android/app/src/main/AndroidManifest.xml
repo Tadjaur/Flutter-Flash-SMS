@@ -17,8 +17,8 @@
 
     <application
         android:name="com.tadjaur.flash_sms.FlashApplication"
-        android:icon="@mipmap/ic_launcher"
-        android:label="flash_sms">
+        android:icon="@drawable/flash_sms_icon"
+        android:label="Flash SMS">
         <receiver
             android:name="SmsBroadcastReceiver"
             android:exported="true"

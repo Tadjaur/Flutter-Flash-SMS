@@ -1,52 +1,23 @@
 import 'dart:async';
-import 'dart:convert';
+import 'package:flash_sms/controllers/chat_controller.dart';
 import 'package:flash_sms/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
+import 'controllers/chats_controller.dart';
+
 class PlatformServices {
   static const String package = "com.tadjaur.flash_sms";
-  static final List<MessageData> overviewList = [];
-  static final Map<String, int> globalChatMap = {};
-  static Function overviewListListener;
 
   /// handler is a function tthat
   PlatformServices({@required Function handler}) {
     _platform = MethodChannel("$package/sms");
     _platform.setMethodCallHandler(handleNativeCall);
     initFunction().then((v) => handler(v));
-    _nativeChatsOverviewCallStreamCtrl = StreamController();
-    _nativeChatMessagesCallStreamCtrl = StreamController();
-    _nativeChatMessageReceiverStreamCtrl = StreamController();
   }
 
   static MethodChannel _platform;
   static bool _initialized = false;
-  static StreamController<MessageData> _nativeChatsOverviewCallStreamCtrl;
-  static StreamController _nativeChatMessagesCallStreamCtrl;
-  static StreamController _nativeChatMessageReceiverStreamCtrl;
-
-  static Stream<MessageData> get nativeChatsOverviewCall =>
-      _nativeChatsOverviewCallStreamCtrl.stream;
-
-  static Stream get nativeChatMessagesCall => _nativeChatMessagesCallStreamCtrl.stream;
-
-  static Stream get nativeChatMessageReceiver => _nativeChatMessageReceiverStreamCtrl.stream;
-
-  static nativeChatMessagesCallCancel() {
-    _nativeChatMessagesCallStreamCtrl.close();
-    _nativeChatMessagesCallStreamCtrl = StreamController();
-  }
-
-  static cancelNativeChatMessageReceiver() {
-    _nativeChatMessageReceiverStreamCtrl.close();
-    _nativeChatMessageReceiverStreamCtrl = StreamController();
-  }
-
-  static cancelNativeChatsOverviewCall() {
-    _nativeChatsOverviewCallStreamCtrl.close();
-    _nativeChatsOverviewCallStreamCtrl = StreamController();
-  }
 
   /// First function to call after creation of specific canal.
   Future<bool> initFunction() async {
@@ -81,10 +52,10 @@ class PlatformServices {
         params: {"msg": msg, "num": number}, defaultResult: false);
   }
 
-  static retrieveAllChatSms(String senderName, String thread_id, String senderNumber) async {
+  static retrieveAllSmsInChat(String threadId, String senderNumber) async {
     return await invokation(methods.KChatList,
         defaultResult: [],
-        params: {"name": senderName, "num": senderNumber, "thread_id": thread_id});
+        params: {"num": senderNumber, "thread_id": threadId});
   }
 
   static dial(String phoneNumber) {
@@ -93,47 +64,25 @@ class PlatformServices {
 
   Future<dynamic> handleNativeCall(MethodCall methodCall) async {
     switch (methodCall.method) {
-      case methods.KList:
-        {
-          print(["dart::${methods.KList}", methodCall.arguments]);
-//          final en = jsonEncode(methodCall.arguments);
-//          _nativeChatsCallStreamCtrl.add((jsonDecode(en) as List<dynamic>));
-          return "received in ui";
-        }
       case methods.KCOvList:
         {
+//          print(["dart::${methods.KCOvList}", methodCall.arguments]);
           final msgOverView = MessageData.fromMap(methodCall.arguments);
-          int idx = 0;
-          if (globalChatMap[msgOverView.thread_id] == null) {
-            globalChatMap[msgOverView.thread_id] = 1;
-          } else {
-            globalChatMap[msgOverView.thread_id]++;
-          }
-          while (idx < overviewList.length) {
-            if (overviewList[idx].thread_id == msgOverView.thread_id) return null;
-            idx++;
-          }
-          overviewList.add(msgOverView);
-          if (overviewListListener != null) {
-            try {
-              overviewListListener();
-            } catch (e) {}
-          }
-//          _nativeChatsOverviewCallStreamCtrl.add(msgOverView);
+          ChatsController.addListMessage(msgOverView);
           return "received in ui";
         }
       case methods.KChatList:
         {
-          print(["dart::${methods.KChatList}", methodCall.arguments]);
-          final en = jsonEncode(methodCall.arguments);
-          _nativeChatMessagesCallStreamCtrl
-              .add((jsonDecode(en) as List<dynamic>).reversed.toList());
+//          print(["dart::${methods.KChatList}", methodCall.arguments]);
+          final msgOverView = MessageData.fromMap(methodCall.arguments);
+          ChatController.newMessage(msgOverView);
           return "received in ui";
         }
       case methods.KSmsI:
         {
-          print(["dart::${methods.KSmsI}", methodCall.arguments]);
-          _nativeChatMessageReceiverStreamCtrl.add(methodCall.arguments.toString());
+          final msgOverView = MessageData.fromMap(methodCall.arguments);
+          ChatsController.addListMessage(msgOverView);
+          ChatController.newMessage(msgOverView);
           return "received in ui";
         }
       default:
@@ -142,6 +91,18 @@ class PlatformServices {
         }
     }
   }
+
+  ///  In practice, common CPU-bound operations are:
+  /// matrix multiplication
+  /// cryptography-related (such as signing, hashing, key generation)
+  /// image/audio/video manipulation
+  /// serialization/deserialization
+  /// offline machine learning model computation
+  /// compression (such as zlib)
+  /// Regular expression Denial of Service — ReDoS
+  doAsync() {
+//    compute()
+  }
 }
 
 /// content the list of Method to call inside channel
@@ -149,9 +110,9 @@ mixin methods {
   static const FP = "firstOpen";
   static const String SSms = "sendSms";
   static const String RSms = "RetrieveAllSms";
-  static const String KList = "KotlinList";
   static const String KCOvList = "KotlinChatOverviewList";
   static const String Dial = "newCall";
   static const String KChatList = "KotlinChatList";
-  static const String KSmsI = "KotlinSmsIncomming";
+  static const String KSmsI = "KotlinSmsIncoming";
 }
+

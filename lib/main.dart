@@ -1,9 +1,8 @@
-import 'package:flash_sms/pages/chat.dart';
-import 'package:flash_sms/pages/first_step.dart';
-import 'package:flash_sms/pages/chat_list.dart';
 import 'package:flash_sms/platform_services.dart';
 import 'package:flash_sms/settings.dart';
+import 'package:flash_sms/widgets/chats.dart';
 import 'package:flutter/material.dart';
+import 'widgets/first_step.dart';
 import 'generated/i18n.dart';
 
 void main() => PlatformServices(
@@ -26,9 +25,9 @@ class FlashSmsApp extends StatelessWidget {
           primaryColor: Pref.of(context).primary,
         ),
         routes: <String, WidgetBuilder>{
-          '/home': (BuildContext context) => ChatListPage(),
-          '/chat': (BuildContext context) => ChatPage(),
+          '/home': (BuildContext context) => ChatsUI(),
+//          '/chat': (BuildContext context) => ChatUI(),
         },
-        home: firstTimeOpened ? FirstStepPage() : ChatListPage());
+        home: firstTimeOpened ? FirstStepUI() : ChatsUI());
   }
 }

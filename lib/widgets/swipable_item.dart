@@ -1,6 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
+enum SwipableDirection { horizontal, startToEnd, endToStart }
+enum _FlingGestureKind { none, forward, reverse }
+
+const double _defaultSeuil = 0.3;
+const double _defaultMaxLimit = 0.7;
+const Curve _kResizeTimeCurve = Interval(0.4, 1.0, curve: Curves.ease);
+const double _kMinFlingVelocity = 700.0;
+const double _kMinFlingVelocityDelta = 400.0;
+const double _kFlingVelocityScale = 1.0 / 300.0;
+
 class SwipableItem extends StatefulWidget {
   SwipableItem(
       {@required this.child,
@@ -9,10 +19,12 @@ class SwipableItem extends StatefulWidget {
       this.movementDuration = const Duration(milliseconds: 200),
       this.direction = SwipableDirection.horizontal,
       this.seuil = const <SwipableDirection, double>{},
+      this.maxLimit = const <SwipableDirection, double>{},
       this.background,
       this.secondaryBackground,
       @required this.onSuccess,
-      this.onTap})
+      this.onTap,
+      this.maxLimitNotify})
       : assert(child != null),
         assert(onSuccess != null, "null callback is not allowed"),
         assert(background != null || secondaryBackground != null,
@@ -43,26 +55,15 @@ class SwipableItem extends StatefulWidget {
   /// be dismissed. Setting a threshold of 1.0 (or greater) prevents a drag in
   /// the given [SwipableDirection] even if it would be allowed by the
   /// [direction] property.
-  final Map<SwipableDirection, double> seuil;
+  final Map<SwipableDirection, double> seuil, maxLimit;
   final SwipableDirection direction;
 
   /// called when swipe success
-  final VoidCallback onSuccess;
-
-  final VoidCallback onTap;
+  final VoidCallback onSuccess, onTap, maxLimitNotify;
 
   @override
   _SwipableItemState createState() => _SwipableItemState();
 }
-
-enum SwipableDirection { horizontal, startToEnd, endToStart }
-enum _FlingGestureKind { none, forward, reverse }
-
-const double _defaultSeuil = 0.3;
-const Curve _kResizeTimeCurve = Interval(0.4, 1.0, curve: Curves.ease);
-const double _kMinFlingVelocity = 700.0;
-const double _kMinFlingVelocityDelta = 400.0;
-const double _kFlingVelocityScale = 1.0 / 300.0;
 
 class _SwipableItemState extends State<SwipableItem>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
@@ -172,8 +173,14 @@ class _SwipableItemState extends State<SwipableItem>
         _updateMoveAnimation();
       });
     }
-    if (!_moveController.isAnimating) {
-      _moveController.value = _dragExtent.abs() / _overallDragAxisExtent;
+    final posVal = _dragExtent.abs() / _overallDragAxisExtent;
+    if (!_moveController.isAnimating &&
+        posVal < (widget.maxLimit[_swipableItemDirection] ?? _defaultMaxLimit)) {
+      _moveController.value = posVal;
+    } else {
+      if (widget.maxLimitNotify != null) {
+        widget.maxLimitNotify();
+      }
     }
   }
 

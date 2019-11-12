@@ -1,37 +1,47 @@
+import 'package:flash_sms/controllers/chats_controller.dart';
 import 'package:flash_sms/generated/i18n.dart';
-import 'package:flash_sms/platform_services.dart';
 import 'package:flash_sms/settings.dart';
+import 'package:flash_sms/widgets/chat.dart';
 import 'package:flash_sms/widgets/swipable_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../utils.dart';
 
-class ChatListPage extends StatefulWidget {
+class ChatsUI extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() => _ChatListPageState();
+  State<StatefulWidget> createState() => _ChatsState();
+
+  final ChatsController ctrl;
+
+  ChatsUI():
+        ctrl = ChatsController();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatsState extends State<ChatsUI> {
   final pinnedFriendList = [];
-
-  List<dynamic> chatsOverviewDataList = [];
 
   final nNumCtrl = TextEditingController();
   final nMsgCtrl = TextEditingController();
+
   @override
   void initState() {
-    PlatformServices.overviewListListener = () => setState(() {});
+    widget.ctrl.changeState(setState);
+    super.initState();
   }
+
 
   @override
   void dispose() {
-    PlatformServices.cancelNativeChatsOverviewCall();
+    widget.ctrl.changeState(null);
+    super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
     String nAddress, nMessage;
+//    widget.ctrl.newChatListener =  this.setState;
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Pref.of(context).lightBlue,
@@ -48,7 +58,7 @@ class _ChatListPageState extends State<ChatListPage> {
                           controller: nNumCtrl,
                           keyboardType: TextInputType.number,
                           maxLength: 12,
-                          onChanged: (text){
+                          onChanged: (text) {
                             nAddress = text;
                           },
                           decoration: InputDecoration(
@@ -60,7 +70,7 @@ class _ChatListPageState extends State<ChatListPage> {
                           controller: nMsgCtrl,
                           keyboardType: TextInputType.text,
                           autocorrect: true,
-                          onChanged: (msg){
+                          onChanged: (msg) {
                             nMessage = msg;
                           },
                           decoration: InputDecoration(
@@ -75,7 +85,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     FlatButton(
                       child: Text('Send'),
                       onPressed: () {
-                        PlatformServices.sendMessage(nMessage, nAddress);
+                        widget.ctrl.sendMessage(nMessage, nAddress);
                         Navigator.of(context).pop();
                       },
                     ),
@@ -130,7 +140,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     ),
                   ),
                 ),
-          chatsOverviewDataList.length < 10
+          widget.ctrl.overviewList.length < 10
               ? SizedBox()
               : Padding(
                   padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
@@ -158,12 +168,12 @@ class _ChatListPageState extends State<ChatListPage> {
                   color: Pref.of(context).primary.withBrigthness(-15)),
               child: ListView.builder(
                   physics: const BouncingScrollPhysics(),
+//                  itemCount: widget.ctrl.overviewList.length,
                   itemBuilder: (BuildContext context, int index) {
-                    print([PlatformServices.overviewList.length, index]);
-                    if (index >= PlatformServices.overviewList.length) return null;
-                    final cod = PlatformServices.overviewList[index];
-
+                    if (index >= widget.ctrl.overviewList.length) return null;
+                    final cod = widget.ctrl.overviewList[index];
                     return SwipableItem(
+                      direction: SwipableDirection.endToStart,
                       child: ChatOverviewUi(cod),
                       secondaryBackground: Container(
                         color: Pref.of(context).transparent,
@@ -176,14 +186,13 @@ class _ChatListPageState extends State<ChatListPage> {
                       onSuccess: () {
                         // vibration
                         HapticFeedback.vibrate();
-                        PlatformServices.dial(cod.senderNumber);
+                        widget.ctrl.dial(cod.senderNumber);
                         print("action to do");
                       },
                       onTap: () {
-                        PlatformServices.retrieveAllChatSms(
-                            cod.senderName, cod.thread_id, cod.senderNumber);
-                        Navigator.of(context).pushNamed("/chat",
-                            arguments: [cod.senderName, cod.senderNumber, cod.avatar]);
+                        Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext ctx){
+                          return ChatUI(cod);
+                        }));
                       },
                     );
                   }),
@@ -223,10 +232,11 @@ class ChatOverviewUi extends StatelessWidget {
                   borderRadius: BorderRadius.circular(50.0),
                 ),
                 child: Center(
-                    child: Text(
+                    child: chat.avatar == null || chat.avatar.isEmpty ? Text(
                   getText(),
                   style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.w900),
-                )),
+                ) : Container(decoration: BoxDecoration(image: DecorationImage(image: MemoryImage(chat.avatar)), borderRadius: BorderRadius.circular(50.0)))
+                ),
               ),
             ),
             Expanded(
@@ -298,7 +308,7 @@ class ChatOverviewUi extends StatelessWidget {
   }
 }
 
-class pinnedFriend extends StatelessWidget {
+/*class pinnedFriend extends StatelessWidget {
   final String avatar;
   final Color actColor;
 
@@ -384,4 +394,4 @@ final List<Widget> onlineFriend = [
     avatar: 'assets/img/1.jpg',
     actColor: Colors.greenAccent,
   ),
-];
+];*/

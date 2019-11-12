@@ -4,18 +4,18 @@ import 'package:flash_sms/widgets/custum_pagination.dart';
 
 import '../settings.dart';
 
-class FirstStepPage extends StatefulWidget {
+class FirstStepUI extends StatefulWidget {
   @override
   _FirstStepPageState createState() => _FirstStepPageState();
 }
 
-class _FirstStepPageState extends State<FirstStepPage> {
+class _FirstStepPageState extends State<FirstStepUI> {
   final SwiperController _swiperController = SwiperController();
   final int _pageCount = 3;
   int _currentIndex = 0;
   final List<String> titles = [
     "Consulter et epingler\ndes discutions importantes,\ndes contact frequents.",
-    "Envoi et reponse au \nmessage de maniere simple et élégantes\n id at metus. ",
+    "Envoi et reponse au \nmessage de maniere simple et élégantes\n ",
     "simple et styler \nfacile a prendre en main \n Commencer Maintenant!"
   ];
   final List<String> images = ["", "", ""];
@@ -55,7 +55,7 @@ class _FirstStepPageState extends State<FirstStepPage> {
                         activeSize: Size(10.0, 20.0),
                         size: Size(10.0, 15.0),
                         activeColor: Pref.of(context).lightBlue,
-                        color: Pref.of(context).primary)),
+                        color: Pref.of(context).darkBlue)),
               )),
               SizedBox(height: 10.0),
               _buildButtons(),
