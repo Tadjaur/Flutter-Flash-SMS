@@ -10,6 +10,7 @@ import android.support.v4.content.ContextCompat
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import io.flutter.embedding.engine.FlutterShellArgs
 
 class Utils {
     companion object {
@@ -118,9 +119,13 @@ class Utils {
         }
 
 
-        fun log(msg:Any, id:String = tag){
+        fun log(msg:Any, id:String = tag, vararg args: Any?){
             print("TAD:: $id >> ")
             println(msg)
+            for (i in 0 until args.size){
+                print("args[$i]")
+                println(args[i])
+            }
         }
 
 

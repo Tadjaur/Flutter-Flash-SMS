@@ -74,17 +74,41 @@ class MainActivity : FlutterActivity() {
                     val rn = Runnable {
                         try {
                             val arg = call.arguments as HashMap<*, *>
-                            SmsReceivers.sentAction = object : SmsReceivers.VoidCallback {
+                            val num:String = arg["num"] as String
+                            val msg:String = arg["msg"] as String
+                            val id = "$num/${Random().nextLong()}"
+                            SmsReceivers.sentAction[id] = object : SmsReceivers.VoidCallback {
                                 override fun onBroadcastReceived(action: String, isSent: Boolean) {
-                                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=$num limit 1", null, "date desc")
+                                    curs.run {
+                                        if (this == null) return@run
+                                        moveToFirst()
+                                        val names = this.columnNames
+                                        for (i in 0 until this.count) {
+                                            val aux = SmsUtils.hashSmsCursorLine(this, names)
+                                            result.success(aux)
+                                            moveToNext()
+                                        }
+                                    }
+                                    curs?.close()
                                 }
 
                                 override fun onBroadcastDelivered(action: String, isSent: Boolean) {
-                                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=${arg["num"] as String} limit 1", null, "date desc")
+                                    curs.run {
+                                        if (this == null) return@run
+                                        moveToFirst()
+                                        val names = this.columnNames
+                                        for (i in 0 until this.count) {
+                                            val aux = SmsUtils.hashSmsCursorLine(this, names)
+                                            result.success(aux)
+                                            moveToNext()
+                                        }
+                                    }
+                                    curs?.close()
                                 }
                             }
-                            Utils.sendSMS(applicationContext, arg["msg"] as String, arg["num"] as String, sentIntentId = "", deliveredIntentId = "")
-                            result.success()
+                            Utils.sendSMS(applicationContext, msg, num, sentIntentId = id, deliveredIntentId = id)
 
                         } catch (e: Error) {
                             result.error("TYPE ERROR", "error when parsing param", e.message)
@@ -188,8 +212,8 @@ class MainActivity : FlutterActivity() {
                 val method = if(args.size > 1) args[1] else Methods.KCOvList
                 try {
                     val uriAll = Uri.parse("content://sms")
-                    mainActivity.contentResolver.query(uriAll, null, select, null, "date desc") // 2nd null = "address IS NOT NULL) GROUP BY (address"
-                    .run {
+                    val curs = mainActivity.contentResolver.query(uriAll, null, select, null, "date desc") // 2nd null = "address IS NOT NULL) GROUP BY (address"
+                    curs.run {
                         if (this == null) return@run
                         moveToFirst()
                         val names = this.columnNames
@@ -201,6 +225,7 @@ class MainActivity : FlutterActivity() {
                             moveToNext()
                         }
                     }
+                    curs?.close()
 
                 } catch (e: IllegalArgumentException) {
                     e.printStackTrace()
