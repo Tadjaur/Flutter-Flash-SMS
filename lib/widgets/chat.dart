@@ -20,6 +20,8 @@ class _ChatPageState extends State<ChatUI> {
   final TextEditingController editSmsCtrl = TextEditingController();
   String inputText = "";
 
+  bool _enableEdit = true;
+
   @override
   void initState() {
     widget.ctrl.changeState(setState);
@@ -46,9 +48,9 @@ class _ChatPageState extends State<ChatUI> {
             ),
             widget.lastMsg.senderNumber != widget.lastMsg.senderName
                 ? Text(
-              widget.lastMsg.senderNumber,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w200),
-            )
+                    widget.lastMsg.senderNumber,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w200),
+                  )
                 : SizedBox(),
           ],
         ),
@@ -84,57 +86,58 @@ class _ChatPageState extends State<ChatUI> {
                     })),
             StringUtil.isNumber(widget.lastMsg.senderNumber)
                 ? Container(
-              height: 55.0,
-              decoration: BoxDecoration(
-                  border:
-                  Border.all(width: 2.0, color: Pref
-                      .of(context)
-                      .darkBlue
-                      .withAlpha(15))),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 10.0),
-                        child: TextField(
-                          decoration: InputDecoration(
-                              hintText: "Enter Messages...",
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none),
-                          controller: editSmsCtrl,
-                          keyboardType: TextInputType.text,
-                          onSubmitted: (String str) {
-                            print(str);
-                            inputText = str;
-                            final MessageData res = widget.ctrl.sendMessage(inputText);
-                            if(res != null){
-                              setState(() {
-                                widget.ctrl.overviewList.insert(0, res);
-                                inputText = "";
-                                editSmsCtrl.clear();
-                              });
-                            }
-                          },
-                          onChanged: (String str) {
-                            inputText = str;
-                          },
-                        ),
-                      )),
-                  GestureDetector(
-                      onTap: () {
-                        final MessageData res = widget.ctrl.sendMessage(inputText);
-                        if(res != null){
-                          setState(() {
-                            widget.ctrl.overviewList.insert(0, res);
-                            inputText = "";
-                            editSmsCtrl.clear();
-                          });
-                        }
-                      },
-                      child: sendIcon(context))
-                ],
-              ),
-            )
+                    height: 55.0,
+                    decoration: BoxDecoration(
+                        border:
+                            Border.all(width: 2.0, color: Pref.of(context).darkBlue.withAlpha(15))),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                            child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 10.0),
+                          child: TextField(
+                            decoration: InputDecoration(
+                                hintText: "Enter Messages...",
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none),
+                            controller: editSmsCtrl,
+                            keyboardType: TextInputType.text,
+                            enabled: _enableEdit,
+                            onSubmitted: (String str) async {
+                              _enableEdit = false;
+                              inputText = str;
+                              final MessageData res = await widget.ctrl.sendMessage(inputText);
+                              if (res != null) {
+                                setState(() {
+                                  widget.ctrl.overviewList.insert(0, res);
+                                  inputText = "";
+                                  editSmsCtrl.clear();
+                                });
+                              }
+                              _enableEdit = true;
+                            },
+                            onChanged: (String str) {
+                              inputText = str;
+                            },
+                          ),
+                        )),
+                        GestureDetector(
+                            onTap: () async {
+                              _enableEdit = false;
+                              final MessageData res = await widget.ctrl.sendMessage(inputText);
+                              _enableEdit = true;
+                              if (res != null) {
+                                setState(() {
+                                  widget.ctrl.overviewList.insert(0, res);
+                                  inputText = "";
+                                  editSmsCtrl.clear();
+                                });
+                              }
+                            },
+                            child: sendIcon(context))
+                      ],
+                    ),
+                  )
                 : Container(),
           ],
         ),
@@ -148,10 +151,7 @@ class _ChatPageState extends State<ChatUI> {
       child: Icon(
         Icons.send,
         size: 35.0,
-        color: Pref
-            .of(context)
-            .darkBlue
-            .withAlpha(alpha),
+        color: Pref.of(context).darkBlue.withAlpha(alpha),
       ),
     );
   }

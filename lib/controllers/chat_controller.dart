@@ -15,18 +15,10 @@ class ChatController {
       PlatformServices.retrieveAllSmsInChat(lastMsg.threadId, lastMsg.senderNumber);
   }
 
-  MessageData sendMessage(String txt) {
+  Future<MessageData> sendMessage(String txt) async {
     print(["sms_to_send", txt]);
     if (txt.trim().length > 0) {
-      PlatformServices.sendMessage(txt.trim(), lastMsg.senderNumber);
-      final Map<String, String> value = {};
-      final d = DateTime.now();
-      value[MSG_K.KEY_NAME] = lastMsg.senderName;
-      value[MSG_K.ADDRESS] = lastMsg.senderNumber;
-      value[MSG_K.BODY] = txt;
-      value[MSG_K.THREAD_ID] = lastMsg.threadId;
-      value[MSG_K.DATE] = d.millisecondsSinceEpoch.toString();
-      value[MSG_K.TYPE] = "2";
+      final value = await PlatformServices.sendMessage(txt.trim(), lastMsg.senderNumber);
       return MessageData.fromMap(value);
     }
     return null;

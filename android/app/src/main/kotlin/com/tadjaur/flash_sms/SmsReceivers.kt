@@ -20,11 +20,10 @@ class SmsReceivers {
                     val txt = "SMS_RESPONSE -> SMS sent"
 //                    Toast.makeText(ctx, txt, Toast.LENGTH_SHORT).show()
                     log(txt, tag, p1?.action)
-//                    sentAction.containsKey()
-//                    sentAction?.onBroadcastReceived(p1?.action ?: "", true)
+                    sentAction[p1?.action]?.onBroadcastReceived(p1?.action ?: "", true)
                 }
                 else -> {
-//                    sentAction?.onBroadcastReceived(p1?.action ?: "", false)
+                    sentAction[p1?.action]?.onBroadcastReceived(p1?.action ?: "", false)
                     when (resultCode) {
                         SmsManager.RESULT_ERROR_GENERIC_FAILURE -> {
 
@@ -67,12 +66,12 @@ class SmsReceivers {
             when (resultCode) {
                 Activity.RESULT_OK -> {
                     log("SMS delivered", tag, p1?.action)
-//                    sentAction?.onBroadcastDelivered(action = p1?.action ?: "", isSent = true)
+                    sentAction[p1?.action]?.onBroadcastDelivered(action = p1?.action ?: "", isSent = true)
 //                    Toast.makeText(ctx, "SMS delivered", Toast.LENGTH_SHORT).show()
                 }
                 Activity.RESULT_CANCELED -> {
                     log("SMS not delivered", tag, p1?.action)
-//                    sentAction?.onBroadcastDelivered(action = p1?.action ?: "", isSent = false)
+                    sentAction[p1?.action]?.onBroadcastDelivered(action = p1?.action ?: "", isSent = false)
 //                    Toast.makeText(ctx, "SMS not delivered", Toast.LENGTH_SHORT).show()
                 }
             }

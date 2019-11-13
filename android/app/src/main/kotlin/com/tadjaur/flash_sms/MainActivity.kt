@@ -79,7 +79,7 @@ class MainActivity : FlutterActivity() {
                             val id = "$num/${Random().nextLong()}"
                             SmsReceivers.sentAction[id] = object : SmsReceivers.VoidCallback {
                                 override fun onBroadcastReceived(action: String, isSent: Boolean) {
-                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=$num limit 1", null, "date desc")
+                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=\"$num\"", null, "date desc limit 1")
                                     curs.run {
                                         if (this == null) return@run
                                         moveToFirst()
@@ -94,18 +94,18 @@ class MainActivity : FlutterActivity() {
                                 }
 
                                 override fun onBroadcastDelivered(action: String, isSent: Boolean) {
-                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=${arg["num"] as String} limit 1", null, "date desc")
-                                    curs.run {
-                                        if (this == null) return@run
-                                        moveToFirst()
-                                        val names = this.columnNames
-                                        for (i in 0 until this.count) {
-                                            val aux = SmsUtils.hashSmsCursorLine(this, names)
-                                            result.success(aux)
-                                            moveToNext()
-                                        }
-                                    }
-                                    curs?.close()
+//                                    val curs = contentResolver.query( Uri.parse("content://sms"), null, "address=$num", null, "date desc limit 1")
+//                                    curs.run {
+//                                        if (this == null) return@run
+//                                        moveToFirst()
+//                                        val names = this.columnNames
+//                                        for (i in 0 until this.count) {
+//                                            val aux = SmsUtils.hashSmsCursorLine(this, names)
+//                                            log(aux, "deliver")
+//                                            moveToNext()
+//                                        }
+//                                    }
+//                                    curs?.close()
                                 }
                             }
                             Utils.sendSMS(applicationContext, msg, num, sentIntentId = id, deliveredIntentId = id)

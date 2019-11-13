@@ -7,7 +7,6 @@ import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import io.flutter.Log
-import org.dizitart.no2.Document
 
 class SmsBroadcastReceiver : BroadcastReceiver() {
     private var listener: Listener? = null

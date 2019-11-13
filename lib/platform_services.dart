@@ -47,7 +47,7 @@ class PlatformServices {
     }
   }
 
-  static sendMessage(String msg, String number) async {
+  static Future<dynamic> sendMessage(String msg, String number) async {
     return await invokation(methods.SSms,
         params: {"msg": msg, "num": number}, defaultResult: false);
   }
