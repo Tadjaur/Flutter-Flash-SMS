@@ -50,7 +50,7 @@ class _ChatsState extends State<ChatsUI> {
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: Text('Rewind and remember'),
+                  title: Text('New SMS'),
                   content: SingleChildScrollView(
                     child: ListBody(
                       children: <Widget>[
