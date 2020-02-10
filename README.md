@@ -1,3 +1,5 @@
+![Test and Build apk](https://github.com/Tadjaur/Flutter-Flash-SMS/workflows/Test,%20Build%20and%20Release%20apk/badge.svg?branch=master)
+
 # flash_sms
 
 An complete sms app make with flutter
