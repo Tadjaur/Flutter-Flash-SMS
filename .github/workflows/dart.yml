@@ -5,6 +5,8 @@ on:
   push:
     branches:
     - master
+    tags: 
+      - "*"
 
 name: Test, Build and Release apk
 
@@ -26,5 +28,7 @@ jobs:
     - name: Create a Release APK
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "build/app/outputs/apk/debug/*.apk"
-        token: ${{ secrets.TOKEN }}
+        artifacts: ".outputs/release/*.apk"
+        tag: "0.1.1"
+        body: "First action release"
+        token: ${{  secrets.RepoAcces }}
